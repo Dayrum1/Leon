@@ -34,21 +34,37 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
+// 🌍 Ruta para comprobar que el servidor está funcionando
+appServer.get("/", (req, res) => {
+  console.log("✅ GET / llamado");
+  res.send("🔥 Servidor de León está activo!");
+});
+
 // 📌 Ruta para obtener el estado de León
 appServer.get("/status", async (req, res) => {
+  console.log("✅ GET /status llamado");
   try {
     const docRef = doc(db, "usuarios", "leon");
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
+      console.log("✅ Datos de Firestore obtenidos con éxito");
       res.json({ status: "success", data: docSnap.data() });
     } else {
+      console.log("⚠️ León no encontrado en Firestore");
       res.status(404).json({ status: "error", message: "León no encontrado" });
     }
   } catch (error) {
+    console.error("❌ Error al obtener los datos de Firestore:", error);
     res.status(500).json({ status: "error", message: "Error al obtener los datos", error });
   }
 });
+
+// 🚀 Iniciar servidor en el puerto correcto
+appServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+});
+
 
 // 🔹 Función para escribir en Firestore
 async function escribirEnFirestore() {
