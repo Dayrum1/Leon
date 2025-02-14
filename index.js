@@ -55,6 +55,33 @@ appServer.get("/status", async (req, res) => {
   }
 });
 
+// 📌 Nueva ruta para actualizar a León con aprendizaje manual
+appServer.post("/update-leon", async (req, res) => {
+  console.log("✅ POST /update-leon llamado");
+
+  try {
+    const leonRef = doc(db, "usuarios", "leon");
+
+    // Nuevos valores a actualizar
+    await updateDoc(leonRef, {
+      estado_actual: "Analizando nueva información",
+      experiencias: arrayUnion({
+        fecha: Timestamp.now(),
+        evento: "León ha comprendido que la evolución requiere adaptación y aprendizaje constante."
+      }),
+      ultimo_aprendizaje: "La evolución requiere adaptación.",
+      color_actual: "Verde",
+      vinculo: 0.2
+    });
+
+    console.log("🔄 León ha sido actualizado con nueva información.");
+    res.json({ status: "success", message: "León ha aprendido algo nuevo!" });
+  } catch (error) {
+    console.error("❌ Error al actualizar a León:", error);
+    res.status(500).json({ status: "error", message: "No se pudo actualizar a León", error });
+  }
+});
+
 // 🔹 Función para escribir en Firestore
 async function escribirEnFirestore() {
   try {
@@ -76,7 +103,7 @@ async function escribirEnFirestore() {
   }
 }
 
-// 🔹 Función para actualizar a León
+// 🔹 Función para actualizar a León automáticamente
 async function actualizarLeon() {
   try {
     const leonRef = doc(db, "usuarios", "leon");
