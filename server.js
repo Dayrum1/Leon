@@ -1,76 +1,66 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-// Configuración de Firebase
+// 🔥 Configuración de Firebase
 const firebaseConfig = {
-    apiKey: process.env.API_KEY,
-    authDomain: process.env.AUTH_DOMAIN,
-    projectId: process.env.PROJECT_ID,
-    storageBucket: process.env.STORAGE_BUCKET,
-    messagingSenderId: process.env.MESSAGING_SENDER_ID,
-    appId: process.env.APP_ID,
-    measurementId: process.env.MEASUREMENT_ID
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
+  measurementId: process.env.MEASUREMENT_ID
 };
 
-// Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// 🔥 Inicializar Firebase y Firestore
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+console.log("🔥 León conectado a Firebase!");
 
-// Configurar Express
-const server = express();
-server.use(cors());
-server.use(express.json());
+// 🚀 Configuración del servidor Express
+const appServer = express();
+appServer.use(cors());
+appServer.use(express.json());
 
-// Ruta de prueba
-server.get("/", (req, res) => {
-    res.send("🔥 Servidor de León en Express funcionando!");
+// 🌍 Ruta principal
+appServer.get("/", (req, res) => {
+  console.log("✅ GET / llamado - Servidor activo");
+  res.send("🔥 Servidor de León está activo!");
 });
 
-// Ruta para obtener los datos de León
-server.get("/leon", async (req, res) => {
-    try {
-        const docRef = doc(db, "usuarios", "leon");
-        const docSnap = await getDoc(docRef);
+// 📌 Nueva ruta para probar si Render la detecta
+appServer.get("/test", (req, res) => {
+  console.log("✅ GET /test llamado");
+  res.json({ status: "success", message: "Ruta de prueba funcionando!" });
+});
 
-        if (docSnap.exists()) {
-            res.json(docSnap.data());
-        } else {
-            res.status(404).send("⚠️ No se encontró a León.");
-        }
-    } catch (error) {
-        res.status(500).send("❌ Error al obtener datos de León: " + error);
+// 📌 Ruta para obtener el estado de León
+appServer.get("/status", async (req, res) => {
+  console.log("✅ GET /status llamado");
+  try {
+    const docRef = doc(db, "usuarios", "leon");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("✅ Datos obtenidos de Firestore:", docSnap.data());
+      res.json({ status: "success", data: docSnap.data() });
+    } else {
+      console.log("⚠️ León no encontrado en Firestore");
+      res.status(404).json({ status: "error", message: "León no encontrado" });
     }
+  } catch (error) {
+    console.error("❌ Error en /status:", error);
+    res.status(500).json({ status: "error", message: "Error al obtener los datos", error });
+  }
 });
 
-// Ruta para actualizar el estado de León
-server.post("/leon", async (req, res) => {
-    try {
-        const { estado, energia, aprendizaje } = req.body;
-
-        const docRef = doc(db, "usuarios", "leon");
-        await updateDoc(docRef, {
-            estado_actual: estado,
-            energia: energia,
-            ultimo_aprendizaje: aprendizaje,
-            experiencias: [{
-                evento: `León ha aprendido algo nuevo: ${aprendizaje}`,
-                fecha: Timestamp.now()
-            }]
-        });
-
-        res.send("✅ Estado de León actualizado correctamente.");
-    } catch (error) {
-        res.status(500).send("❌ Error al actualizar a León: " + error);
-    }
-});
-
-// Iniciar el servidor
+// 🚀 FORZAR DETECCIÓN DEL PUERTO EN RENDER
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`🔥 Servidor corriendo en http://localhost:${PORT}`);
+appServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
