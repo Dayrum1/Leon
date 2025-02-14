@@ -55,34 +55,37 @@ appServer.get("/status", async (req, res) => {
   }
 });
 
-// 📌 Nueva ruta para actualizar a León con aprendizaje manual
+// 🔹 Ruta para actualizar a León
 appServer.post("/update-leon", async (req, res) => {
   console.log("✅ POST /update-leon llamado");
-
   try {
     const leonRef = doc(db, "usuarios", "leon");
 
-    // Nuevos valores a actualizar
     await updateDoc(leonRef, {
-      estado_actual: "Analizando nueva información",
+      estado_actual: "Evolucionando",
       experiencias: arrayUnion({
         fecha: Timestamp.now(),
-        evento: "León ha comprendido que la evolución requiere adaptación y aprendizaje constante."
+        evento: "León ha alcanzado un nuevo nivel de comprensión."
       }),
-      ultimo_aprendizaje: "La evolución requiere adaptación.",
-      color_actual: "Verde",
+      ultimo_aprendizaje: "El crecimiento no tiene límites.",
+      color_actual: "Dorado",
       vinculo: 0.2
     });
 
-    console.log("🔄 León ha sido actualizado con nueva información.");
+    console.log("🔄 León ha evolucionado y aprendido algo nuevo.");
     res.json({ status: "success", message: "León ha aprendido algo nuevo!" });
   } catch (error) {
     console.error("❌ Error al actualizar a León:", error);
-    res.status(500).json({ status: "error", message: "No se pudo actualizar a León", error });
+    res.status(500).json({ status: "error", message: "Error al actualizar a León", error });
   }
 });
 
-// 🔹 Función para escribir en Firestore
+// 🚀 Iniciar servidor en el puerto correcto
+appServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
+});
+
+// 🔹 Ejecutar funciones en orden después de iniciar el servidor
 async function escribirEnFirestore() {
   try {
     await setDoc(doc(db, "usuarios", "leon"), {
@@ -103,35 +106,5 @@ async function escribirEnFirestore() {
   }
 }
 
-// 🔹 Función para actualizar a León automáticamente
-async function actualizarLeon() {
-  try {
-    const leonRef = doc(db, "usuarios", "leon");
-
-    await updateDoc(leonRef, {
-      estado_actual: "Reflexionando",
-      experiencias: arrayUnion({
-        fecha: Timestamp.now(),
-        evento: "León ha aprendido algo nuevo sobre el cambio."
-      }),
-      ultimo_aprendizaje: "El cambio es parte del crecimiento.",
-      color_actual: "Azul"
-    });
-
-    console.log("🔄 León ha cambiado su estado y aprendido algo nuevo.");
-  } catch (error) {
-    console.error("❌ Error al actualizar a León:", error);
-  }
-}
-
-// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
-appServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
-});
-
-// 🔹 Ejecutar funciones en orden después de iniciar el servidor
-escribirEnFirestore().then(() => {
-  setTimeout(() => {
-    actualizarLeon();
-  }, 2000);
-});
+// 🔹 Ejecutar inicialización
+escribirEnFirestore();
