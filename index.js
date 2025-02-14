@@ -31,11 +31,6 @@ const PORT = process.env.PORT || 10000;
 
 // 🌍 Ruta para comprobar que el servidor está funcionando
 appServer.get("/", (req, res) => {
-  res.send("🔥 Servidor de León está activo!");
-});
-
-// 🌍 Ruta para comprobar que el servidor está funcionando
-appServer.get("/", (req, res) => {
   console.log("✅ GET / llamado");
   res.send("🔥 Servidor de León está activo!");
 });
@@ -59,12 +54,6 @@ appServer.get("/status", async (req, res) => {
     res.status(500).json({ status: "error", message: "Error al obtener los datos", error });
   }
 });
-
-// 🚀 Iniciar servidor en el puerto correcto
-appServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
-});
-
 
 // 🔹 Función para escribir en Firestore
 async function escribirEnFirestore() {
@@ -108,7 +97,7 @@ async function actualizarLeon() {
   }
 }
 
-// 🚀 Iniciar servidor en el puerto correcto
+// 🚀 Iniciar servidor en el puerto correcto (se deja al final)
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
