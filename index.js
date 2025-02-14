@@ -31,7 +31,7 @@ const PORT = process.env.PORT || 10000;
 
 // 🌍 Ruta para comprobar que el servidor está funcionando
 appServer.get("/", (req, res) => {
-  console.log("✅ GET / llamado");
+  console.log("✅ GET / llamado - Servidor activo");
   res.send("🔥 Servidor de León está activo!");
 });
 
@@ -43,14 +43,14 @@ appServer.get("/status", async (req, res) => {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      console.log("✅ Datos de Firestore obtenidos con éxito");
+      console.log("✅ Datos obtenidos de Firestore:", docSnap.data());
       res.json({ status: "success", data: docSnap.data() });
     } else {
       console.log("⚠️ León no encontrado en Firestore");
       res.status(404).json({ status: "error", message: "León no encontrado" });
     }
   } catch (error) {
-    console.error("❌ Error al obtener los datos de Firestore:", error);
+    console.error("❌ Error en /status:", error);
     res.status(500).json({ status: "error", message: "Error al obtener los datos", error });
   }
 });
@@ -97,12 +97,12 @@ async function actualizarLeon() {
   }
 }
 
-// 🚀 Iniciar servidor en el puerto correcto (se deja al final)
+// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
 
-// 🔹 Ejecutar funciones en orden
+// 🔹 Ejecutar funciones en orden después de iniciar el servidor
 escribirEnFirestore().then(() => {
   setTimeout(() => {
     actualizarLeon();
