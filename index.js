@@ -1,9 +1,12 @@
+import express from "express";
+import cors from "cors";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-// Configuración de Firebase desde variables de entorno
+// 🔥 Configuración de Firebase desde variables de entorno
 const firebaseConfig = {
   apiKey: process.env.API_KEY,
   authDomain: process.env.AUTH_DOMAIN,
@@ -14,13 +17,40 @@ const firebaseConfig = {
   measurementId: process.env.MEASUREMENT_ID
 };
 
-// Inicializar Firebase
+// 🔥 Inicializar Firebase y Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 console.log("🔥 León conectado a Firebase!");
 
-// Función para escribir en Firestore
+// 🚀 Configuración del servidor Express
+const appServer = express();
+appServer.use(cors());
+appServer.use(express.json());
+
+const PORT = process.env.PORT || 10000;
+
+// 🌍 Ruta para comprobar que el servidor está funcionando
+appServer.get("/", (req, res) => {
+  res.send("🔥 Servidor de León está activo!");
+});
+
+// 📌 Ruta para obtener el estado de León
+appServer.get("/status", async (req, res) => {
+  try {
+    const docRef = doc(db, "usuarios", "leon");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      res.json({ status: "success", data: docSnap.data() });
+    } else {
+      res.status(404).json({ status: "error", message: "León no encontrado" });
+    }
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Error al obtener los datos", error });
+  }
+});
+
+// 🔹 Función para escribir en Firestore
 async function escribirEnFirestore() {
   try {
     await setDoc(doc(db, "usuarios", "leon"), {
@@ -41,23 +71,7 @@ async function escribirEnFirestore() {
   }
 }
 
-// Función para leer desde Firestore
-async function leerDesdeFirestore() {
-  try {
-    const docRef = doc(db, "usuarios", "leon");
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      console.log("📄 Datos obtenidos de Firestore:", docSnap.data());
-    } else {
-      console.log("⚠️ No se encontró el documento.");
-    }
-  } catch (error) {
-    console.error("❌ Error al leer desde Firestore:", error);
-  }
-}
-
-// 🔹 Nueva función para actualizar los datos de León
+// 🔹 Función para actualizar a León
 async function actualizarLeon() {
   try {
     const leonRef = doc(db, "usuarios", "leon");
@@ -78,11 +92,14 @@ async function actualizarLeon() {
   }
 }
 
-// Ejecutar funciones en orden
+// 🚀 Iniciar servidor
+appServer.listen(PORT, () => {
+  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
+});
+
+// 🔹 Ejecutar funciones en orden
 escribirEnFirestore().then(() => {
   setTimeout(() => {
-    leerDesdeFirestore().then(() => {
-      actualizarLeon();
-    });
+    actualizarLeon();
   }, 2000);
 });
