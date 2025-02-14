@@ -18,8 +18,8 @@ const firebaseConfig = {
 };
 
 // 🔥 Inicializar Firebase y Firestore
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 console.log("🔥 León conectado a Firebase!");
 
 // 🚀 Configuración del servidor Express
@@ -92,8 +92,8 @@ async function actualizarLeon() {
   }
 }
 
-// 🚀 Iniciar servidor
-appServer.listen(PORT, () => {
+// 🚀 Iniciar servidor en el puerto correcto
+appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
 
