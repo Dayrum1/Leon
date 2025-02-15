@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -55,7 +55,7 @@ appServer.get("/status", async (req, res) => {
   }
 });
 
-// 📌 Nueva Ruta para actualizar el estado de León
+// 📌 Ruta para actualizar el estado de León
 appServer.post("/update-leon", async (req, res) => {
   console.log("✅ POST /update-leon llamado");
   try {
@@ -79,7 +79,7 @@ appServer.post("/update-leon", async (req, res) => {
   }
 });
 
-// 📌 Nueva Ruta para enseñar a León
+// 📌 Ruta para enseñar a León
 appServer.post("/teach-leon", async (req, res) => {
   console.log("✅ POST /teach-leon llamado");
   try {
@@ -103,7 +103,36 @@ appServer.post("/teach-leon", async (req, res) => {
   }
 });
 
-// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
+// 📌 Nueva Ruta para que León recuerde lo aprendido
+appServer.get("/recall-leon", async (req, res) => {
+  console.log("✅ GET /recall-leon llamado");
+  try {
+    const { tema } = req.query;
+    if (!tema) {
+      return res.status(400).json({ status: "error", message: "Debe proporcionar un tema." });
+    }
+
+    const conocimientosRef = collection(db, "conocimientos");
+    const q = query(conocimientosRef, where("tema", "==", tema));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      console.log("⚠️ No hay conocimientos para este tema.");
+      return res.status(404).json({ status: "error", message: "No se encontraron conocimientos para este tema." });
+    }
+
+    let conocimientos = [];
+    querySnapshot.forEach((doc) => conocimientos.push(doc.data()));
+
+    console.log("✅ Conocimientos recuperados:", conocimientos);
+    res.json({ status: "success", data: conocimientos });
+  } catch (error) {
+    console.error("❌ Error en /recall-leon:", error);
+    res.status(500).json({ status: "error", message: "Error al recuperar conocimientos", error });
+  }
+});
+
+// 🚀 Iniciar servidor en el puerto correcto
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
