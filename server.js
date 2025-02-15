@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// 🔥 Configuración de Firebase
+// 🔥 Configuración de Firebase desde variables de entorno
 const firebaseConfig = {
   apiKey: process.env.API_KEY,
   authDomain: process.env.AUTH_DOMAIN,
@@ -27,16 +27,12 @@ const appServer = express();
 appServer.use(cors());
 appServer.use(express.json());
 
-// 🌍 Ruta principal
+const PORT = process.env.PORT || 10000;
+
+// 🌍 Ruta para comprobar que el servidor está funcionando
 appServer.get("/", (req, res) => {
   console.log("✅ GET / llamado - Servidor activo");
   res.send("🔥 Servidor de León está activo!");
-});
-
-// 📌 Nueva ruta para probar si Render la detecta
-appServer.get("/test", (req, res) => {
-  console.log("✅ GET /test llamado");
-  res.json({ status: "success", message: "Ruta de prueba funcionando!" });
 });
 
 // 📌 Ruta para obtener el estado de León
@@ -59,8 +55,32 @@ appServer.get("/status", async (req, res) => {
   }
 });
 
-// 🚀 FORZAR DETECCIÓN DEL PUERTO EN RENDER
-const PORT = process.env.PORT || 3000;
+// 📌 Nueva Ruta para actualizar el estado de León
+appServer.post("/update-leon", async (req, res) => {
+  console.log("✅ POST /update-leon llamado");
+  try {
+    const leonRef = doc(db, "usuarios", "leon");
+
+    await updateDoc(leonRef, {
+      estado_actual: "Explorando",
+      experiencias: arrayUnion({
+        fecha: Timestamp.now(),
+        evento: "León ha aprendido algo nuevo sobre su entorno."
+      }),
+      ultimo_aprendizaje: "Descubrir el mundo es parte del crecimiento.",
+      color_actual: "Verde"
+    });
+
+    console.log("🔄 León ha evolucionado con nueva información.");
+    res.json({ status: "success", message: "León ha aprendido algo nuevo!" });
+  } catch (error) {
+    console.error("❌ Error en /update-leon:", error);
+    res.status(500).json({ status: "error", message: "Error al actualizar a León", error });
+  }
+});
+
+// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
+
