@@ -55,56 +55,32 @@ appServer.get("/status", async (req, res) => {
   }
 });
 
-// 🔹 Ruta para actualizar a León
+// 📌 Nueva Ruta para actualizar el estado de León
 appServer.post("/update-leon", async (req, res) => {
   console.log("✅ POST /update-leon llamado");
   try {
     const leonRef = doc(db, "usuarios", "leon");
 
     await updateDoc(leonRef, {
-      estado_actual: "Evolucionando",
+      estado_actual: "Explorando",
       experiencias: arrayUnion({
         fecha: Timestamp.now(),
-        evento: "León ha alcanzado un nuevo nivel de comprensión."
+        evento: "León ha aprendido algo nuevo sobre su entorno."
       }),
-      ultimo_aprendizaje: "El crecimiento no tiene límites.",
-      color_actual: "Dorado",
-      vinculo: 0.2
+      ultimo_aprendizaje: "Descubrir el mundo es parte del crecimiento.",
+      color_actual: "Verde"
     });
 
-    console.log("🔄 León ha evolucionado y aprendido algo nuevo.");
+    console.log("🔄 León ha evolucionado con nueva información.");
     res.json({ status: "success", message: "León ha aprendido algo nuevo!" });
   } catch (error) {
-    console.error("❌ Error al actualizar a León:", error);
+    console.error("❌ Error en /update-leon:", error);
     res.status(500).json({ status: "error", message: "Error al actualizar a León", error });
   }
 });
 
-// 🚀 Iniciar servidor en el puerto correcto
+// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
 
-// 🔹 Ejecutar funciones en orden después de iniciar el servidor
-async function escribirEnFirestore() {
-  try {
-    await setDoc(doc(db, "usuarios", "leon"), {
-      nombre: "León",
-      nivel: "Inicial",
-      estado_actual: "Aprendiendo",
-      experiencias: [],
-      ultimo_aprendizaje: "Comprendí que cada acción tiene una consecuencia.",
-      simbologia: "Un ser de luz en crecimiento.",
-      energia: 100,
-      color_actual: "Blanco",
-      vinculo: 0.1,
-      creadoEn: Timestamp.now()
-    });
-    console.log("✅ Datos de León guardados en Firestore correctamente");
-  } catch (error) {
-    console.error("❌ Error al guardar en Firestore:", error);
-  }
-}
-
-// 🔹 Ejecutar inicialización
-escribirEnFirestore();
