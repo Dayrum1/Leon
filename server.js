@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc } from "firebase/firestore";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -79,8 +79,31 @@ appServer.post("/update-leon", async (req, res) => {
   }
 });
 
+// 📌 Nueva Ruta para enseñar a León
+appServer.post("/teach-leon", async (req, res) => {
+  console.log("✅ POST /teach-leon llamado");
+  try {
+    const { tema, contenido, fuente } = req.body;
+    if (!tema || !contenido || !fuente) {
+      return res.status(400).json({ status: "error", message: "Faltan datos en la petición." });
+    }
+
+    await addDoc(collection(db, "conocimientos"), {
+      tema,
+      contenido,
+      fuente,
+      fecha_aprendizaje: Timestamp.now()
+    });
+
+    console.log(`📚 León ha aprendido sobre ${tema}.`);
+    res.json({ status: "success", message: `León ha aprendido sobre ${tema}!` });
+  } catch (error) {
+    console.error("❌ Error en /teach-leon:", error);
+    res.status(500).json({ status: "error", message: "Error al enseñar a León", error });
+  }
+});
+
 // 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
-
