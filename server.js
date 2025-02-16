@@ -52,21 +52,21 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    // 🏆 Filtrar la mejor coincidencia posible
+    // 🏆 Buscar una coincidencia exacta o más relevante
     let bestMatch = searchResults.results.find((title) =>
-      title.toLowerCase() === tema.toLowerCase() ||
-      title.toLowerCase().includes(tema.toLowerCase())
+      title.toLowerCase() === tema.toLowerCase() || title.toLowerCase().includes(tema.toLowerCase())
     );
 
     if (!bestMatch) {
-      // 🔍 Intentar encontrar términos más relevantes
+      // Si no hay coincidencia exacta, buscar entre los mejores resultados
       bestMatch = searchResults.results.find((title) =>
         title.toLowerCase().includes("concept") ||
         title.toLowerCase().includes("science") ||
         title.toLowerCase().includes("philosophy") ||
         title.toLowerCase().includes("biology") ||
         title.toLowerCase().includes("technology") ||
-        title.toLowerCase().includes("study")
+        title.toLowerCase().includes("study") ||
+        title.toLowerCase().includes("theory")
       ) || searchResults.results[0];
     }
 
