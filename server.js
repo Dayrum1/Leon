@@ -52,12 +52,15 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    let bestMatch = searchResults.results.find((title) =>
-      title.toLowerCase().includes(tema.toLowerCase())
+    let bestMatch = searchResults.results.find((title) => 
+      title.toLowerCase() === tema.toLowerCase() || // Coincidencia exacta
+      title.toLowerCase().includes(tema.toLowerCase()) // Incluye el tema
     );
 
     if (!bestMatch) {
-      bestMatch = searchResults.results[0]; // Si no encontramos coincidencia exacta, tomamos la primera
+      bestMatch = searchResults.results.find((title) =>
+        title.toLowerCase().includes("intelligence") && !title.toLowerCase().includes("film")
+      ) || searchResults.results[0]; // Si no encuentra, elige la primera opción
     }
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
@@ -67,14 +70,8 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const summary = await wikiPage.summary();
 
     // 🔄 **Evitar respuestas genéricas o incorrectas**
-    if (
-      summary.toLowerCase().includes("may refer to:") || // Página de desambiguación
-      bestMatch.toLowerCase().includes("film") || // Películas
-      bestMatch.toLowerCase().includes("typeface") || // Tipografías
-      bestMatch.toLowerCase().includes("movie") ||
-      bestMatch.toLowerCase().includes("novel") ||
-      bestMatch.toLowerCase().includes("band")
-    ) {
+    const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to"];
+    if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
       return res.status(400).json({
         status: "error",
         message: `La búsqueda de "${tema}" resultó en una página de desambiguación o en un resultado irrelevante. Prueba un término más específico.`,
