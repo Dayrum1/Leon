@@ -3,7 +3,7 @@ import cors from "cors";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
-import wiki from "wikijs"; // 🔥 Importamos la librería de Wikipedia
+import wiki from "wikijs";
 
 dotenv.config();
 
@@ -52,15 +52,17 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    let bestMatch = searchResults.results.find((title) => 
-      title.toLowerCase() === tema.toLowerCase() || // Coincidencia exacta
-      title.toLowerCase().includes(tema.toLowerCase()) // Incluye el tema
+    let bestMatch = searchResults.results.find((title) =>
+      title.toLowerCase() === tema.toLowerCase() ||
+      title.toLowerCase().includes(tema.toLowerCase())
     );
 
     if (!bestMatch) {
       bestMatch = searchResults.results.find((title) =>
-        title.toLowerCase().includes("intelligence") && !title.toLowerCase().includes("film")
-      ) || searchResults.results[0]; // Si no encuentra, elige la primera opción
+        title.toLowerCase().includes("concept") ||
+        title.toLowerCase().includes("field") ||
+        title.toLowerCase().includes("science")
+      ) || searchResults.results[0];
     }
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
@@ -70,11 +72,11 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const summary = await wikiPage.summary();
 
     // 🔄 **Evitar respuestas genéricas o incorrectas**
-    const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to"];
+    const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
     if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
       return res.status(400).json({
         status: "error",
-        message: `La búsqueda de "${tema}" resultó en una página de desambiguación o en un resultado irrelevante. Prueba un término más específico.`,
+        message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico como "Inteligencia Artificial (campo de estudio)".`,
       });
     }
 
