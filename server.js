@@ -4,6 +4,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
 import wiki from "wikijs";
+import translate from "@vitalets/google-translate-api"; // 🔥 Importamos un traductor
 
 dotenv.config();
 
@@ -35,7 +36,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 **Ruta mejorada para aprender desde Wikipedia**
+// 📌 **Ruta para aprender desde Wikipedia con soporte en español e inglés**
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -45,29 +46,31 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 
   try {
-    // 🔍 Buscar coincidencias en Wikipedia
-    const searchResults = await wiki().search(tema);
+    // 🔍 Buscar en Wikipedia en español primero
+    let searchResults = await wiki({ apiUrl: "https://es.wikipedia.org/w/api.php" }).search(tema);
+
+    if (searchResults.results.length === 0) {
+      console.log(`⚠️ No se encontró "${tema}" en español. Probando en inglés...`);
+
+      // 🔄 Traducir el tema al inglés
+      const translated = await translate(tema, { to: "en" });
+      console.log(`🔄 Tema traducido: ${tema} → ${translated.text}`);
+
+      // 🔍 Buscar en Wikipedia en inglés
+      searchResults = await wiki({ apiUrl: "https://en.wikipedia.org/w/api.php" }).search(translated.text);
+    }
 
     if (searchResults.results.length === 0) {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    // 🏆 Buscar una coincidencia exacta o más relevante
+    // 🏆 Buscar una coincidencia exacta
     let bestMatch = searchResults.results.find((title) =>
       title.toLowerCase() === tema.toLowerCase() || title.toLowerCase().includes(tema.toLowerCase())
     );
 
     if (!bestMatch) {
-      // Si no hay coincidencia exacta, buscar entre los mejores resultados
-      bestMatch = searchResults.results.find((title) =>
-        title.toLowerCase().includes("concept") ||
-        title.toLowerCase().includes("science") ||
-        title.toLowerCase().includes("philosophy") ||
-        title.toLowerCase().includes("biology") ||
-        title.toLowerCase().includes("technology") ||
-        title.toLowerCase().includes("study") ||
-        title.toLowerCase().includes("theory")
-      ) || searchResults.results[0];
+      bestMatch = searchResults.results[0]; // Si no hay exacta, tomamos la primera
     }
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
@@ -79,32 +82,10 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     // 🔄 **Evitar respuestas irrelevantes**
     const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
     if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
-      console.log(`⚠️ ${tema} parece ambiguo. Buscando alternativa...`);
-
-      // Buscar otra alternativa dentro de los resultados
-      const alternativeMatch = searchResults.results.find((title) =>
-        !keywordsToAvoid.some((word) => title.toLowerCase().includes(word))
-      );
-
-      if (alternativeMatch) {
-        console.log(`🔄 Alternativa encontrada: ${alternativeMatch}`);
-        const altPage = await wiki().page(alternativeMatch);
-        const altSummary = await altPage.summary();
-
-        await addDoc(collection(db, "conocimientos"), {
-          tema: alternativeMatch,
-          contenido: altSummary,
-          fuente: "Wikipedia",
-          fecha_aprendizaje: Timestamp.now(),
-        });
-
-        return res.json({ status: "success", message: `León ha aprendido sobre ${alternativeMatch} desde Wikipedia!`, contenido: altSummary });
-      } else {
-        return res.status(400).json({
-          status: "error",
-          message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico como "Inteligencia Artificial (campo de estudio)".`,
-        });
-      }
+      return res.status(400).json({
+        status: "error",
+        message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico.`,
+      });
     }
 
     // 🔥 Guardar el conocimiento en Firestore
