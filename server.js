@@ -35,7 +35,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 Ruta para obtener información de Wikipedia y almacenarla en Firestore
+// 📌 Ruta para obtener información de Wikipedia con mejor manejo de errores
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -45,24 +45,27 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 
   try {
-    // 🔍 Buscar información en Wikipedia
-    const wikiPage = await wiki().page(tema);
-    const summary = await wikiPage.summary(); // Obtener el resumen del artículo
+    // 🔍 Buscar coincidencias en Wikipedia antes de obtener el resumen
+    const searchResults = await wiki().search(tema);
 
-    if (!summary) {
-      return res.status(404).json({ status: "error", message: "No se encontró información en Wikipedia." });
+    if (searchResults.results.length === 0) {
+      return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
+
+    const bestMatch = searchResults.results[0]; // 🏆 Tomamos la mejor coincidencia encontrada
+    const wikiPage = await wiki().page(bestMatch);
+    const summary = await wikiPage.summary(); // Obtener el resumen del artículo
 
     // 🔥 Guardar el conocimiento en Firestore
     await addDoc(collection(db, "conocimientos"), {
-      tema,
+      tema: bestMatch,
       contenido: summary,
       fuente: "Wikipedia",
       fecha_aprendizaje: Timestamp.now()
     });
 
-    console.log(`📚 León ha aprendido sobre ${tema} desde Wikipedia.`);
-    res.json({ status: "success", message: `León ha aprendido sobre ${tema} desde Wikipedia!`, contenido: summary });
+    console.log(`📚 León ha aprendido sobre ${bestMatch} desde Wikipedia.`);
+    res.json({ status: "success", message: `León ha aprendido sobre ${bestMatch} desde Wikipedia!`, contenido: summary });
 
   } catch (error) {
     console.error("❌ Error al obtener datos de Wikipedia:", error);
