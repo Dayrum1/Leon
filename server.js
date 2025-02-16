@@ -3,7 +3,7 @@ import cors from "cors";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
-import wiki from "wikijs"; // 🔥 Importamos la librería de Wikipedia
+import wiki from "wikijs"; // 🔥 Librería de Wikipedia
 
 dotenv.config();
 
@@ -35,7 +35,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 Ruta mejorada para obtener información de Wikipedia
+// 📌 **Ruta mejorada para obtener información de Wikipedia**
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -66,7 +66,7 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const wikiPage = await wiki().page(bestMatch);
     const summary = await wikiPage.summary();
 
-    // 🔄 Evitar respuestas genéricas de desambiguación
+    // 🔄 **Evitar respuestas genéricas de desambiguación**
     if (summary.toLowerCase().includes("may refer to:")) {
       return res.status(400).json({
         status: "error",
