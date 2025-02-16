@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
 import wiki from "wikijs"; // 🔥 Importamos la librería de Wikipedia
 
@@ -15,7 +15,7 @@ const firebaseConfig = {
   storageBucket: process.env.STORAGE_BUCKET,
   messagingSenderId: process.env.MESSAGING_SENDER_ID,
   appId: process.env.APP_ID,
-  measurementId: process.env.MEASUREMENT_ID
+  measurementId: process.env.MEASUREMENT_ID,
 };
 
 // 🔥 Inicializar Firebase y Firestore
@@ -35,7 +35,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 Ruta para obtener información de Wikipedia con mejor manejo de errores
+// 📌 Ruta mejorada para obtener información de Wikipedia
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -45,23 +45,41 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 
   try {
-    // 🔍 Buscar coincidencias en Wikipedia antes de obtener el resumen
+    // 🔍 Buscar coincidencias en Wikipedia
     const searchResults = await wiki().search(tema);
 
     if (searchResults.results.length === 0) {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    const bestMatch = searchResults.results[0]; // 🏆 Tomamos la mejor coincidencia encontrada
+    let bestMatch = searchResults.results[0]; // 🏆 Primera coincidencia
+
+    // 🔄 Si hay varias coincidencias, intentar encontrar una más precisa
+    const filteredMatch = searchResults.results.find((title) =>
+      title.toLowerCase().includes(tema.toLowerCase())
+    );
+    if (filteredMatch) bestMatch = filteredMatch;
+
+    console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
+
+    // Obtener la página y su resumen
     const wikiPage = await wiki().page(bestMatch);
-    const summary = await wikiPage.summary(); // Obtener el resumen del artículo
+    const summary = await wikiPage.summary();
+
+    // 🔄 Evitar respuestas genéricas de desambiguación
+    if (summary.toLowerCase().includes("may refer to:")) {
+      return res.status(400).json({
+        status: "error",
+        message: `La búsqueda de "${tema}" resultó en una página de desambiguación. Prueba un término más específico.`,
+      });
+    }
 
     // 🔥 Guardar el conocimiento en Firestore
     await addDoc(collection(db, "conocimientos"), {
       tema: bestMatch,
       contenido: summary,
       fuente: "Wikipedia",
-      fecha_aprendizaje: Timestamp.now()
+      fecha_aprendizaje: Timestamp.now(),
     });
 
     console.log(`📚 León ha aprendido sobre ${bestMatch} desde Wikipedia.`);
@@ -73,7 +91,7 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 });
 
-// 🚀 Iniciar servidor en el puerto correcto (Render detectará el puerto automáticamente)
+// 🚀 Iniciar servidor en el puerto correcto
 appServer.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
