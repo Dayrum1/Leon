@@ -3,7 +3,7 @@ import cors from "cors";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
-import wiki from "wikijs"; // 🔥 Librería de Wikipedia
+import wiki from "wikijs"; // 🔥 Importamos la librería de Wikipedia
 
 dotenv.config();
 
@@ -52,13 +52,13 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    let bestMatch = searchResults.results[0]; // 🏆 Primera coincidencia
-
-    // 🔄 Si hay varias coincidencias, intentar encontrar una más precisa
-    const filteredMatch = searchResults.results.find((title) =>
+    let bestMatch = searchResults.results.find((title) =>
       title.toLowerCase().includes(tema.toLowerCase())
     );
-    if (filteredMatch) bestMatch = filteredMatch;
+
+    if (!bestMatch) {
+      bestMatch = searchResults.results[0]; // Si no encontramos coincidencia exacta, tomamos la primera
+    }
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
 
@@ -66,11 +66,18 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const wikiPage = await wiki().page(bestMatch);
     const summary = await wikiPage.summary();
 
-    // 🔄 **Evitar respuestas genéricas de desambiguación**
-    if (summary.toLowerCase().includes("may refer to:")) {
+    // 🔄 **Evitar respuestas genéricas o incorrectas**
+    if (
+      summary.toLowerCase().includes("may refer to:") || // Página de desambiguación
+      bestMatch.toLowerCase().includes("film") || // Películas
+      bestMatch.toLowerCase().includes("typeface") || // Tipografías
+      bestMatch.toLowerCase().includes("movie") ||
+      bestMatch.toLowerCase().includes("novel") ||
+      bestMatch.toLowerCase().includes("band")
+    ) {
       return res.status(400).json({
         status: "error",
-        message: `La búsqueda de "${tema}" resultó en una página de desambiguación. Prueba un término más específico.`,
+        message: `La búsqueda de "${tema}" resultó en una página de desambiguación o en un resultado irrelevante. Prueba un término más específico.`,
       });
     }
 
