@@ -35,7 +35,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 **Ruta optimizada para obtener información de Wikipedia**
+// 📌 **Ruta mejorada para aprender desde Wikipedia**
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -52,7 +52,7 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    // 🏆 Filtrar el mejor resultado posible
+    // 🏆 Filtrar la mejor coincidencia posible
     let bestMatch = searchResults.results.find((title) =>
       title.toLowerCase() === tema.toLowerCase() ||
       title.toLowerCase().includes(tema.toLowerCase())
@@ -65,7 +65,8 @@ appServer.get("/learn-from-wiki", async (req, res) => {
         title.toLowerCase().includes("science") ||
         title.toLowerCase().includes("philosophy") ||
         title.toLowerCase().includes("biology") ||
-        title.toLowerCase().includes("technology")
+        title.toLowerCase().includes("technology") ||
+        title.toLowerCase().includes("study")
       ) || searchResults.results[0];
     }
 
