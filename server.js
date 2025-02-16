@@ -35,7 +35,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 **Ruta mejorada para obtener información de Wikipedia**
+// 📌 **Ruta optimizada para obtener información de Wikipedia**
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -52,18 +52,20 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
+    // 🏆 Filtrar el mejor resultado posible
     let bestMatch = searchResults.results.find((title) =>
       title.toLowerCase() === tema.toLowerCase() ||
       title.toLowerCase().includes(tema.toLowerCase())
     );
 
     if (!bestMatch) {
-      // 🔍 Buscar palabras clave en los títulos para filtrar resultados
+      // 🔍 Intentar encontrar términos más relevantes
       bestMatch = searchResults.results.find((title) =>
+        title.toLowerCase().includes("concept") ||
         title.toLowerCase().includes("science") ||
         title.toLowerCase().includes("philosophy") ||
-        title.toLowerCase().includes("technology") ||
-        title.toLowerCase().includes("study")
+        title.toLowerCase().includes("biology") ||
+        title.toLowerCase().includes("technology")
       ) || searchResults.results[0];
     }
 
@@ -73,11 +75,11 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const wikiPage = await wiki().page(bestMatch);
     const summary = await wikiPage.summary();
 
-    // 🔄 **Evitar respuestas genéricas o incorrectas**
+    // 🔄 **Evitar respuestas irrelevantes**
     const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
     if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
       console.log(`⚠️ ${tema} parece ambiguo. Buscando alternativa...`);
-      
+
       // Buscar otra alternativa dentro de los resultados
       const alternativeMatch = searchResults.results.find((title) =>
         !keywordsToAvoid.some((word) => title.toLowerCase().includes(word))
