@@ -39,7 +39,7 @@ appServer.get("/", (req, res) => {
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
-  const tema = req.query.tema;
+  let tema = req.query.tema;
   if (!tema) {
     return res.status(400).json({ status: "error", message: "Debes proporcionar un tema para aprender." });
   }
@@ -58,10 +58,12 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     );
 
     if (!bestMatch) {
+      // 🔍 Buscar palabras clave en los títulos para filtrar resultados
       bestMatch = searchResults.results.find((title) =>
-        title.toLowerCase().includes("concept") ||
-        title.toLowerCase().includes("field") ||
-        title.toLowerCase().includes("science")
+        title.toLowerCase().includes("science") ||
+        title.toLowerCase().includes("philosophy") ||
+        title.toLowerCase().includes("technology") ||
+        title.toLowerCase().includes("study")
       ) || searchResults.results[0];
     }
 
@@ -74,10 +76,32 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     // 🔄 **Evitar respuestas genéricas o incorrectas**
     const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
     if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
-      return res.status(400).json({
-        status: "error",
-        message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico como "Inteligencia Artificial (campo de estudio)".`,
-      });
+      console.log(`⚠️ ${tema} parece ambiguo. Buscando alternativa...`);
+      
+      // Buscar otra alternativa dentro de los resultados
+      const alternativeMatch = searchResults.results.find((title) =>
+        !keywordsToAvoid.some((word) => title.toLowerCase().includes(word))
+      );
+
+      if (alternativeMatch) {
+        console.log(`🔄 Alternativa encontrada: ${alternativeMatch}`);
+        const altPage = await wiki().page(alternativeMatch);
+        const altSummary = await altPage.summary();
+
+        await addDoc(collection(db, "conocimientos"), {
+          tema: alternativeMatch,
+          contenido: altSummary,
+          fuente: "Wikipedia",
+          fecha_aprendizaje: Timestamp.now(),
+        });
+
+        return res.json({ status: "success", message: `León ha aprendido sobre ${alternativeMatch} desde Wikipedia!`, contenido: altSummary });
+      } else {
+        return res.status(400).json({
+          status: "error",
+          message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico como "Inteligencia Artificial (campo de estudio)".`,
+        });
+      }
     }
 
     // 🔥 Guardar el conocimiento en Firestore
