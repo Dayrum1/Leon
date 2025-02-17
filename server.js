@@ -46,40 +46,41 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 
   try {
-    // 🔍 Buscar en Wikipedia en español primero
-    let searchResults = await wiki({ apiUrl: "https://es.wikipedia.org/w/api.php" }).search(tema);
+    let searchResults;
+    let bestMatch;
+    let summary;
+
+    // 🔍 Buscar primero en Wikipedia en español
+    searchResults = await wiki({ apiUrl: "https://es.wikipedia.org/w/api.php" }).search(tema);
 
     if (searchResults.results.length === 0) {
       console.log(`⚠️ No se encontró "${tema}" en español. Probando en inglés...`);
 
       // 🔄 Traducir el tema al inglés
       const translated = await translate(tema, { to: "en" });
-      console.log(`🔄 Tema traducido: ${tema} → ${translated.text}`);
+      const temaEnIngles = translated.text;
+      console.log(`🔄 Tema traducido: ${tema} → ${temaEnIngles}`);
 
       // 🔍 Buscar en Wikipedia en inglés
-      searchResults = await wiki({ apiUrl: "https://en.wikipedia.org/w/api.php" }).search(translated.text);
+      searchResults = await wiki({ apiUrl: "https://en.wikipedia.org/w/api.php" }).search(temaEnIngles);
     }
 
     if (searchResults.results.length === 0) {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    // 🏆 Buscar una coincidencia exacta
-    let bestMatch = searchResults.results.find((title) =>
+    // 🏆 Buscar una coincidencia exacta o la más relevante
+    bestMatch = searchResults.results.find((title) =>
       title.toLowerCase() === tema.toLowerCase() || title.toLowerCase().includes(tema.toLowerCase())
-    );
-
-    if (!bestMatch) {
-      bestMatch = searchResults.results[0]; // Si no hay exacta, tomamos la primera
-    }
+    ) || searchResults.results[0]; // Si no hay exacta, tomamos la primera
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
 
-    // Obtener la página y su resumen
-    const wikiPage = await wiki().page(bestMatch);
-    const summary = await wikiPage.summary();
+    // 🔍 Obtener la página y su resumen
+    const wikiPage = await wiki({ apiUrl: "https://es.wikipedia.org/w/api.php" }).page(bestMatch);
+    summary = await wikiPage.summary();
 
-    // 🔄 **Evitar respuestas irrelevantes**
+    // 🔄 **Evitar respuestas irrelevantes o de desambiguación**
     const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
     if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
       return res.status(400).json({
