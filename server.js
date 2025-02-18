@@ -46,6 +46,8 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 
   try {
+    tema = tema.toLowerCase(); // 🔄 Convertimos a minúsculas para evitar diferencias
+
     // 🔍 Buscar en Wikipedia en español primero
     let searchResults = await wiki({ apiUrl: "https://es.wikipedia.org/w/api.php" }).search(tema);
 
