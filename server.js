@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, Timestamp, getDocs, query, where } from "firebase/firestore";
 import dotenv from "dotenv";
 import wiki from "wikijs";
 import translate from "@vitalets/google-translate-api"; // 🔥 Importamos un traductor
@@ -36,35 +36,52 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 **Ruta para recuperar lo que León ha aprendido**
+// 📌 **Ruta para recordar conocimientos almacenados en Firestore**
 appServer.get("/recall-leon", async (req, res) => {
   console.log("✅ GET /recall-leon llamado");
 
-  const tema = req.query.tema;
+  let tema = req.query.tema;
   if (!tema) {
     return res.status(400).json({ status: "error", message: "Debes proporcionar un tema para recordar." });
   }
 
   try {
-    const conocimientosRef = collection(db, "conocimientos");
-    const q = query(conocimientosRef, where("tema", "==", tema));
-    const querySnapshot = await getDocs(q);
+    // 🔍 Convertir la búsqueda a minúsculas para hacerla insensible a mayúsculas
+    const temaLower = tema.toLowerCase();
 
-    if (querySnapshot.empty) {
-      return res.status(404).json({ status: "error", message: `León no recuerda nada sobre "${tema}".` });
-    }
+    // 🔍 Buscar coincidencias exactas en Firestore
+    const conocimientosRef = collection(db, "conocimientos");
+    const consulta = query(conocimientosRef, where("tema", "==", temaLower));
+    const snapshot = await getDocs(consulta);
 
     let conocimientos = [];
-    querySnapshot.forEach((doc) => {
+    snapshot.forEach((doc) => {
       conocimientos.push(doc.data());
     });
 
-    console.log(`🧠 León recuerda ${conocimientos.length} cosas sobre "${tema}".`);
+    // 🔄 Si no hay coincidencia exacta, buscar coincidencias parciales
+    if (conocimientos.length === 0) {
+      console.log(`⚠️ No se encontró "${temaLower}". Buscando términos similares...`);
+
+      const allDocsSnapshot = await getDocs(conocimientosRef);
+      allDocsSnapshot.forEach((doc) => {
+        const storedTema = doc.data().tema.toLowerCase();
+        if (storedTema.includes(temaLower) || temaLower.includes(storedTema)) {
+          conocimientos.push(doc.data());
+        }
+      });
+    }
+
+    if (conocimientos.length === 0) {
+      return res.status(404).json({ status: "error", message: `León no recuerda nada sobre "${tema}".` });
+    }
+
+    console.log(`📖 León recuerda ${conocimientos.length} entradas sobre "${tema}".`);
     res.json({ status: "success", data: conocimientos });
 
   } catch (error) {
-    console.error("❌ Error al recuperar información:", error);
-    res.status(500).json({ status: "error", message: "Error al recuperar información de León", error });
+    console.error("❌ Error al recuperar conocimiento:", error);
+    res.status(500).json({ status: "error", message: "Error al recuperar conocimiento de León", error });
   }
 });
 
