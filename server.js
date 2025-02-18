@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, Timestamp, getDocs, query, where } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp } from "firebase/firestore";
 import dotenv from "dotenv";
 import wiki from "wikijs";
 import translate from "@vitalets/google-translate-api";
@@ -36,7 +36,7 @@ appServer.get("/", (req, res) => {
   res.send("🔥 Servidor de León está activo!");
 });
 
-// 📌 **Ruta para aprender desde Wikipedia con tolerancia a variaciones**
+// 📌 **Ruta para aprender desde Wikipedia con soporte en español e inglés**
 appServer.get("/learn-from-wiki", async (req, res) => {
   console.log("✅ GET /learn-from-wiki llamado");
 
@@ -64,14 +64,10 @@ appServer.get("/learn-from-wiki", async (req, res) => {
       return res.status(404).json({ status: "error", message: `No se encontró un artículo sobre "${tema}" en Wikipedia.` });
     }
 
-    // 🏆 Buscar una coincidencia exacta con tolerancia a variaciones
+    // 🏆 Buscar una coincidencia exacta o la primera disponible
     let bestMatch = searchResults.results.find((title) =>
-      title.toLowerCase().includes(tema.toLowerCase())
-    );
-
-    if (!bestMatch) {
-      bestMatch = searchResults.results[0]; // Si no hay exacta, tomamos la primera
-    }
+      title.toLowerCase() === tema.toLowerCase() || title.toLowerCase().includes(tema.toLowerCase())
+    ) || searchResults.results[0];
 
     console.log(`🔍 Mejor coincidencia encontrada: ${bestMatch}`);
 
@@ -79,9 +75,18 @@ appServer.get("/learn-from-wiki", async (req, res) => {
     const wikiPage = await wiki().page(bestMatch);
     const summary = await wikiPage.summary();
 
-    // 🔥 Guardar el conocimiento en Firestore con normalización de términos
+    // 🔄 **Evitar respuestas irrelevantes**
+    const keywordsToAvoid = ["film", "movie", "typeface", "novel", "band", "may refer to", "disambiguation"];
+    if (keywordsToAvoid.some((word) => bestMatch.toLowerCase().includes(word) || summary.toLowerCase().includes(word))) {
+      return res.status(400).json({
+        status: "error",
+        message: `El término "${tema}" tiene muchas definiciones. Prueba con algo más específico.`,
+      });
+    }
+
+    // 🔥 Guardar el conocimiento en Firestore con tema en minúsculas
     await addDoc(collection(db, "conocimientos"), {
-      tema: bestMatch.toLowerCase(), // Guardamos en minúsculas para evitar duplicados
+      tema: bestMatch.toLowerCase(),
       contenido: summary,
       fuente: "Wikipedia",
       fecha_aprendizaje: Timestamp.now(),
@@ -96,7 +101,7 @@ appServer.get("/learn-from-wiki", async (req, res) => {
   }
 });
 
-// 📌 **Ruta para recordar información con tolerancia a variantes**
+// 📌 **Ruta para recordar conocimientos de León**
 appServer.get("/recall-leon", async (req, res) => {
   console.log("✅ GET /recall-leon llamado");
 
@@ -106,28 +111,40 @@ appServer.get("/recall-leon", async (req, res) => {
   }
 
   try {
-    // 🔍 Normalizar el término de búsqueda
-    const temaLower = tema.toLowerCase();
+    tema = tema.toLowerCase(); // 🔄 Normalizamos la búsqueda a minúsculas
 
-    // 🔎 Buscar en la base de datos con tolerancia a variaciones
-    const q = query(collection(db, "conocimientos"), where("tema", ">=", temaLower), where("tema", "<=", temaLower + "\uf8ff"));
+    // 📌 Consulta a Firestore buscando el tema exacto
+    const q = query(collection(db, "conocimientos"), where("tema", "==", tema));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      return res.status(404).json({ status: "error", message: `León no recuerda nada sobre "${tema}".` });
+      // 📌 Si no hay coincidencias exactas, buscar términos que contengan la palabra clave
+      const allDocs = await getDocs(collection(db, "conocimientos"));
+      const similarResults = [];
+
+      allDocs.forEach((doc) => {
+        const data = doc.data();
+        if (data.tema.includes(tema)) {
+          similarResults.push(data);
+        }
+      });
+
+      if (similarResults.length === 0) {
+        return res.status(404).json({ status: "error", message: `León no recuerda nada sobre "${tema}".` });
+      } else {
+        return res.json({ status: "success", data: similarResults });
+      }
     }
 
-    let recuerdos = [];
-    querySnapshot.forEach((doc) => {
-      recuerdos.push(doc.data());
-    });
+    // 📌 Si hay coincidencias exactas, devolver los datos
+    const results = [];
+    querySnapshot.forEach((doc) => results.push(doc.data()));
 
-    console.log(`🤖 León recuerda ${recuerdos.length} cosas sobre "${tema}".`);
-    res.json({ status: "success", data: recuerdos });
+    res.json({ status: "success", data: results });
 
   } catch (error) {
     console.error("❌ Error en /recall-leon:", error);
-    res.status(500).json({ status: "error", message: "Error al recordar información", error });
+    res.status(500).json({ status: "error", message: "Error al recordar información de León", error });
   }
 });
 
