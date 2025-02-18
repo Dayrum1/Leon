@@ -1,7 +1,7 @@
-const express = require("express");
-const cors = require("cors");
-const { initializeApp } = require("firebase/app");
-const {
+import express from "express";
+import cors from "cors";
+import { initializeApp } from "firebase/app";
+import {
   getFirestore,
   collection,
   addDoc,
@@ -9,10 +9,10 @@ const {
   where,
   getDocs,
   Timestamp,
-} = require("firebase/firestore");
-const dotenv = require("dotenv");
-const wiki = require("wikijs");
-const translate = require("@vitalets/google-translate-api");
+} from "firebase/firestore";
+import dotenv from "dotenv";
+import wiki from "wikijs";
+import translate from "@vitalets/google-translate-api";
 
 dotenv.config();
 
